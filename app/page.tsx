@@ -6,9 +6,22 @@ export default function Home() {
         Order your Deutschlandticket in 3 simple steps – available in English
         and Arabic.
       </p>
-      <p style={{ color: "#666", marginTop: "1rem" }}>
-        🚧 Coming soon: order form, ticket display, wallet integration.
-      </p>
+      <a
+        href="/order"
+        style={{
+          display: "inline-block",
+          marginTop: "1.5rem",
+          padding: "0.85rem 1.5rem",
+          background: "#2563eb",
+          color: "#fff",
+          borderRadius: 10,
+          fontWeight: 700,
+          fontSize: "1.1rem",
+          textDecoration: "none",
+        }}
+      >
+        Order now →
+      </a>
     </main>
   );
 }
