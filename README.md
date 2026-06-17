@@ -85,26 +85,47 @@ All tests always run with `MOBILITYBOX_MODE=mock`. No real network calls are mad
 
 ## Deploying to Vercel
 
-1. Push to GitHub (already done).
-2. Import the repo at https://vercel.com/new.
-3. Set environment variables in Vercel project settings:
-   - `MOBILITYBOX_MODE=mock` (or `live` when ready – see warning above)
-   - `MOBILITYBOX_API_KEY=<your key>` (only for live mode)
-   - `DATABASE_URL=<your cloud DB URL>` (see note below)
+### 1. Create a Turso database (free tier)
 
-### ⚠️ SQLite on Vercel
+```bash
+npm install -g @turso/cli
+turso auth login
+turso db create welcome-ticket
+turso db show welcome-ticket --url        # → your TURSO_DATABASE_URL
+turso db tokens create welcome-ticket     # → your TURSO_AUTH_TOKEN
 
-The Vercel filesystem is **ephemeral** – SQLite data is lost on every
-deployment and serverless invocation. For real production use, switch to
-a cloud database:
+# Apply the schema migration to the cloud DB:
+turso db shell welcome-ticket < prisma/migrations/$(ls prisma/migrations | grep -v lock)/migration.sql
+```
 
-- **[Neon](https://neon.tech)** (PostgreSQL, free tier) – change
-  `provider = "postgresql"` in `prisma/schema.prisma` and update the adapter.
-- **[Turso](https://turso.tech)** (libsql, edge-compatible) – works with the
-  existing `@prisma/adapter-libsql` adapter; just update `DATABASE_URL`.
+### 2. Import to Vercel
 
-Prisma makes the migration straightforward: update the schema provider and
-connection string, then run `prisma migrate deploy`.
+1. Go to https://vercel.com/new and import the GitHub repo.
+2. Set these environment variables in Vercel project settings:
+
+| Variable | Value |
+|---|---|
+| `MOBILITYBOX_MODE` | `mock` (change to `live` only after getting a sandbox key) |
+| `MOBILITYBOX_API_KEY` | Your key (only needed for live mode) |
+| `TURSO_DATABASE_URL` | `libsql://your-db.turso.io` |
+| `TURSO_AUTH_TOKEN` | Token from `turso db tokens create` |
+
+3. Deploy. The `postinstall` script runs `prisma generate` automatically.
+
+### How the DB connection works
+
+| Environment | Config used |
+|---|---|
+| **Local dev** | `DATABASE_URL=file:./dev.db` (SQLite file, set in `.env.local`) |
+| **Vercel / Turso** | `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` (libsql over HTTPS) |
+
+`lib/db.ts` picks Turso when `TURSO_DATABASE_URL` is set, otherwise falls
+back to the local SQLite file. No code change needed between environments.
+
+### ⚠️ Do NOT set DATABASE_URL on Vercel
+
+On Vercel the filesystem is ephemeral. Setting `DATABASE_URL=file:./dev.db`
+on Vercel would cause silent data loss. Use `TURSO_DATABASE_URL` instead.
 
 ---
 

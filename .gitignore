@@ -50,4 +50,5 @@ prisma/test.db
 *.tsbuildinfo
 next-env.d.ts
 
-/lib/generated/prisma
+# lib/generated/prisma is intentionally committed so Vercel has the client
+# without needing a separate generate step (postinstall handles updates)
