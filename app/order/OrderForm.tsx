@@ -73,7 +73,8 @@ export default function OrderForm() {
         <p>
           Valid: {ticket.valid_from} → {ticket.valid_until}
         </p>
-        <button style={styles.walletBtn} disabled>
+        {/* Wallet integration is a placeholder for a future release */}
+        <button style={styles.walletBtn} disabled data-testid="wallet-btn">
           Add to Wallet (coming soon)
         </button>
         <p style={styles.hint}>
