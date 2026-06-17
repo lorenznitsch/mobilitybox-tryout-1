@@ -1,0 +1,31 @@
+{
+  "title": "Welcome Ticket – Deutschlandticket Portal",
+  "subtitle": "Order your Deutschlandticket in 3 simple steps.",
+  "orderNow": "Order now →",
+  "formTitle": "Order your Deutschlandticket",
+  "formSubtitle": "Fill in your details below. All fields are required.",
+  "firstName": "First name",
+  "lastName": "Last name",
+  "birthDate": "Date of birth",
+  "postalCode": "German postal code (5 digits)",
+  "notGermany": "I do not live in Germany",
+  "submit": "Order now →",
+  "processing": "Processing your order…",
+  "successTitle": "Your Deutschlandticket is ready!",
+  "valid": "Valid",
+  "walletBtn": "Add to Wallet (coming soon)",
+  "walletHint": "You will receive your ticket details by email. Keep this page open or take a screenshot.",
+  "errorTitle": "Something went wrong",
+  "tryAgain": "Try again",
+  "errors": {
+    "firstName": "First name is required",
+    "lastName": "Last name is required",
+    "birthDate": "Date of birth is required",
+    "birthDateInvalid": "Invalid date",
+    "birthDateRange": "Please enter a valid date of birth",
+    "postalCode": "Postal code is required",
+    "postalCodeFormat": "Postal code must be 5 digits"
+  },
+  "lang": "English",
+  "switchLang": "العربية"
+}

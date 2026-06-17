@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, FormEvent } from "react"
-import { validateOrderForm } from "@/lib/validation"
+import { getMessages, type Locale } from "@/lib/i18n"
 
 interface TicketData {
   ticket_id: string
@@ -11,7 +11,16 @@ interface TicketData {
   valid_until: string
 }
 
-export default function OrderForm() {
+interface Props {
+  initialLocale?: Locale
+}
+
+export default function OrderForm({ initialLocale = "en" }: Props) {
+  const [locale, setLocale] = useState<Locale>(initialLocale)
+  const t = getMessages(locale)
+  const isRtl = locale === "ar"
+  const dir = isRtl ? "rtl" : "ltr"
+
   const [step, setStep] = useState<"form" | "submitting" | "success" | "error">("form")
   const [ticket, setTicket] = useState<TicketData | null>(null)
   const [errorMsg, setErrorMsg] = useState("")
@@ -23,11 +32,32 @@ export default function OrderForm() {
   const [notGermany, setNotGermany] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
+  function validate() {
+    const errors: Record<string, string> = {}
+    if (!firstName.trim()) errors.firstName = t.errors.firstName
+    if (!lastName.trim()) errors.lastName = t.errors.lastName
+    if (!birthDate) {
+      errors.birthDate = t.errors.birthDate
+    } else {
+      const d = new Date(birthDate)
+      if (isNaN(d.getTime())) errors.birthDate = t.errors.birthDateInvalid
+      else {
+        const age = (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+        if (age < 0 || age > 120) errors.birthDate = t.errors.birthDateRange
+      }
+    }
+    if (!notGermany) {
+      if (!postalCode.trim()) errors.postalCode = t.errors.postalCode
+      else if (!/^\d{5}$/.test(postalCode.trim())) errors.postalCode = t.errors.postalCodeFormat
+    }
+    return errors
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const result = validateOrderForm({ firstName, lastName, birthDate, postalCode, notGermany })
-    if (!result.valid) {
-      setFieldErrors(result.errors as Record<string, string>)
+    const errors = validate()
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
       return
     }
     setFieldErrors({})
@@ -37,14 +67,14 @@ export default function OrderForm() {
       const res = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName, birthDate, postalCode, notGermany }),
+        body: JSON.stringify({ firstName, lastName, birthDate, postalCode, notGermany, language: locale }),
       })
       const data = await res.json()
       if (res.ok && data.status === "ticket_ready") {
         setTicket(data.ticketData)
         setStep("success")
       } else {
-        setErrorMsg(data.error ?? "Something went wrong. Please try again.")
+        setErrorMsg(data.error ?? t.errorTitle)
         setStep("error")
       }
     } catch {
@@ -53,10 +83,22 @@ export default function OrderForm() {
     }
   }
 
+  const langSwitcher = (
+    <button
+      onClick={() => setLocale(locale === "en" ? "ar" : "en")}
+      style={styles.langBtn}
+      data-testid="lang-switcher"
+      type="button"
+    >
+      {t.switchLang}
+    </button>
+  )
+
   if (step === "submitting") {
     return (
-      <div style={styles.center}>
-        <p style={styles.lead}>Processing your order…</p>
+      <div style={styles.center} dir={dir}>
+        {langSwitcher}
+        <p style={styles.lead}>{t.processing}</p>
         <div style={styles.spinner} />
       </div>
     )
@@ -64,69 +106,65 @@ export default function OrderForm() {
 
   if (step === "success" && ticket) {
     return (
-      <div style={styles.card} id="ticket-success">
-        <h2 style={styles.successTitle}>🎉 Your Deutschlandticket is ready!</h2>
+      <div style={styles.card} id="ticket-success" dir={dir}>
+        {langSwitcher}
+        <h2 style={styles.successTitle}>{t.successTitle}</h2>
         <p style={styles.lead}>
           {ticket.passenger.first_name} {ticket.passenger.last_name}
         </p>
         <p>{ticket.tariff.name}</p>
         <p>
-          Valid: {ticket.valid_from} → {ticket.valid_until}
+          {t.valid}: {ticket.valid_from} → {ticket.valid_until}
         </p>
         {/* Wallet integration is a placeholder for a future release */}
         <button style={styles.walletBtn} disabled data-testid="wallet-btn">
-          Add to Wallet (coming soon)
+          {t.walletBtn}
         </button>
-        <p style={styles.hint}>
-          You will receive your ticket details by email. Keep this page open or
-          take a screenshot.
-        </p>
+        <p style={styles.hint}>{t.walletHint}</p>
       </div>
     )
   }
 
   if (step === "error") {
     return (
-      <div style={styles.card}>
-        <h2 style={{ color: "#c00" }}>Something went wrong</h2>
+      <div style={styles.card} dir={dir}>
+        {langSwitcher}
+        <h2 style={{ color: "#c00" }}>{t.errorTitle}</h2>
         <p>{errorMsg}</p>
         <button style={styles.btn} onClick={() => setStep("form")}>
-          Try again
+          {t.tryAgain}
         </button>
       </div>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} style={styles.form} noValidate>
-      <h2 style={styles.formTitle}>Order your Deutschlandticket</h2>
-      <p style={styles.subtitle}>
-        Fill in your details below. All fields are required.
-      </p>
+    <form onSubmit={handleSubmit} style={styles.form} noValidate dir={dir}>
+      {langSwitcher}
+      <h2 style={styles.formTitle}>{t.formTitle}</h2>
+      <p style={styles.subtitle}>{t.formSubtitle}</p>
 
-      <Field label="First name" error={fieldErrors.firstName}>
+      <Field label={t.firstName} error={fieldErrors.firstName}>
         <input
           style={inputStyle(!!fieldErrors.firstName)}
           type="text"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
           autoComplete="given-name"
-          placeholder="Max"
         />
       </Field>
 
-      <Field label="Last name" error={fieldErrors.lastName}>
+      <Field label={t.lastName} error={fieldErrors.lastName}>
         <input
           style={inputStyle(!!fieldErrors.lastName)}
           type="text"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
           autoComplete="family-name"
-          placeholder="Mustermann"
         />
       </Field>
 
-      <Field label="Date of birth" error={fieldErrors.birthDate}>
+      <Field label={t.birthDate} error={fieldErrors.birthDate}>
         <input
           style={inputStyle(!!fieldErrors.birthDate)}
           type="date"
@@ -137,7 +175,7 @@ export default function OrderForm() {
         />
       </Field>
 
-      <Field label="German postal code (5 digits)" error={fieldErrors.postalCode}>
+      <Field label={t.postalCode} error={fieldErrors.postalCode}>
         <input
           style={inputStyle(!!fieldErrors.postalCode && !notGermany)}
           type="text"
@@ -154,13 +192,14 @@ export default function OrderForm() {
             type="checkbox"
             checked={notGermany}
             onChange={(e) => setNotGermany(e.target.checked)}
+            data-testid="not-germany-checkbox"
           />{" "}
-          I do not live in Germany
+          {t.notGermany}
         </label>
       </Field>
 
       <button type="submit" style={styles.btn}>
-        Order now →
+        {t.submit}
       </button>
     </form>
   )
@@ -184,7 +223,7 @@ function Field({
   )
 }
 
-function inputStyle(hasError: boolean) {
+function inputStyle(hasError: boolean): React.CSSProperties {
   return {
     ...styles.input,
     borderColor: hasError ? "#c00" : "#ccc",
@@ -263,5 +302,15 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "50%",
     animation: "spin 0.8s linear infinite",
     margin: "1rem auto",
+  },
+  langBtn: {
+    float: "right",
+    background: "none",
+    border: "1px solid #ccc",
+    borderRadius: 6,
+    padding: "0.3rem 0.7rem",
+    cursor: "pointer",
+    fontSize: "0.9rem",
+    marginBottom: "1rem",
   },
 }
