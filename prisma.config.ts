@@ -9,6 +9,8 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Fallback keeps `prisma generate` working on Vercel where DATABASE_URL is not set.
+    // The actual runtime connection is configured in lib/db.ts via TURSO_DATABASE_URL.
+    url: process.env["DATABASE_URL"] ?? "file:./dev.db",
   },
 });
